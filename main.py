@@ -143,7 +143,7 @@ for r in repos:
                         resource = "macos.m1.medium.gen1"
             
             #If the resource variable matches the Resource we started with, no change was made - otherwise, one was made.
-            if (resource != old_resource):
+            if (resource != old_resource and resource != ""):
                 change_made=True
                 if depth == 0:
                     value["resource_class"] = resource
