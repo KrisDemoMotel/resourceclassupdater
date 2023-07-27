@@ -12,13 +12,14 @@ new_branch_name="MacosResourceAutomaticUpdate" #Make sure this is unique.
 
 #check for initial flags.
 
+args = []
 for s in sys.argv:
-    s=s.lower()
+    args.append(s.lower())
 
-convert_gen1_to_gen2 = "g1-g2" in sys.argv
-convert_gen1_to_gen2_m1_large = "g1-g2m1" in sys.argv
-convert_gen1_to_m1 = "g1-m1" in sys.argv
-convert_gen2_to_m1 = "g2-m1" in sys.argv
+convert_gen1_to_gen2 = "g1-g2" in args
+convert_gen1_to_gen2_m1_large = "g1-g2m1" in args
+convert_gen1_to_m1 = "g1-m1" in args
+convert_gen2_to_m1 = "g2-m1" in args
 
 if convert_gen1_to_gen2 == True and convert_gen1_to_m1 == True:
     print ("Conflict - gen1 marked to migrate to both m1 and gen2")
@@ -26,10 +27,10 @@ if convert_gen1_to_gen2 == True and convert_gen1_to_m1 == True:
 
 if convert_gen1_to_m1 == False and convert_gen1_to_gen2 == False and convert_gen2_to_m1 == False and convert_gen1_to_gen2_m1_large == False:
     print ("Please add at least one of the following parameters:")
-    print ("G1-G2 - Convert all Gen 1 macos to Gen 2 Medium.")
-    print ("G1-G2M1 - Convert all Gen 1 macos medium to Gen 2 Medium, and Gen 1 Large to M1 Large.")
-    print ("G1-M1 - Convert all Gen 1 macos to M1")
-    print ("G2-M1 - Convert all Gen 2 macos to M1")
+    print ("g1-g2 - Convert all Gen 1 macos to Gen 2 Medium.")
+    print ("g1-g2m1 - Convert all Gen 1 macos medium to Gen 2 Medium, and Gen 1 Large to M1 Large.")
+    print ("g1-m1 - Convert all Gen 1 macos to M1")
+    print ("g2-m1 - Convert all Gen 2 macos to M1")
     sys.exit(1)
 
 #If any of the configuration elements up top are not filled in, ask for them here.
