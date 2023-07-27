@@ -59,7 +59,6 @@ def fetch_repos():
 
 #For each repo, investigate for a .circleci/config.yml file being present in the main branch.
 def repo_scan(repo):
-    print("\n======Repo: " + repo["name"] + "======")
     call_url = api_url + "repos/" + api_org + "/" + repo["name"] + "/contents/.circleci/config.yml"
 
     result = requests.get(call_url, headers=headers)
@@ -95,6 +94,7 @@ repos = response.json()
 
 #Run through each of them.
 for r in repos:
+    print("\n\n====== Working on Repo: " + r["name"] + " ======")
     result = repo_scan(r)
     if result == False: #Any error, we leave.
         continue
@@ -109,13 +109,24 @@ for r in repos:
     result_yaml = yaml.load(result_text)
     change_made=False #If no changes are made, we can quit after this is done.
 
-    print("======Updating macos resource classes======")
+    print("\n=== Updating macos resource classes ===")
 
     for attr, value in result_yaml['jobs'].items():
         if "macos" in value:
 
-            resource = value["resource_class"]
-            match resource:
+            ## The resource class can be present under macos, or on the same depth tas it, so we need to account for both.
+            ## We first check for the same depth, then, we check under macos.
+            depth = 0
+            if "resource_class" in value:
+                old_resource = value["resource_class"]
+            elif "resource_class" in value["macos"]:
+                depth = 1
+                old_resource = value["macos"]["resource_class"]
+            else:
+                print("Unexpected lack of resource_class tag.")
+                continue
+            resource = ""
+            match old_resource:
                 #Updates depending on the flag used.
                 case "medium":
                     if convert_gen1_to_m1 == True:
@@ -132,10 +143,14 @@ for r in repos:
                         resource = "macos.m1.medium.gen1"
             
             #If the resource variable matches the Resource we started with, no change was made - otherwise, one was made.
-            if resource != value["resource_class"]:
+            if (resource != old_resource):
                 change_made=True
-                print("Updating from " + value["resource_class"] + " to " + resource)
-                value["resource_class"] = resource
+                if depth == 0:
+                    value["resource_class"] = resource
+                elif depth == 1:
+                    value["macos"]["resource_class"] = resource
+                
+                print("Updating from " + old_resource + " to " + resource)
         else:
             continue
     
@@ -143,7 +158,7 @@ for r in repos:
         print("No changes triggered, moving to next repo.")
         continue
     
-    print("======Writing file locally======")
+    print("\n=== Writing file locally ===")
     #We save the file locally so that a copy is available to view, and so that it's easier to json-ify later.
     with open(r['name'] + ".yml", "w") as file:
         yaml.dump(result_yaml, file)
@@ -157,7 +172,7 @@ for r in repos:
     create_pr_url = base_repo_url + "/pulls"
 
     #Attempt to create a branch. If it already exists, we will assume the script has already been run and move on.
-    print("======Creating Branch======")
+    print("\n=== Creating Branch ===")
     branches = requests.get(ref_head_url, headers=headers).json()
     branch, sha = branches[-1]['ref'], branches[-1]['object']['sha']
 
@@ -167,10 +182,11 @@ for r in repos:
     }))
     if branch_create_res.status_code != 201 and branch_create_res.status_code != 200:
         print("Error when attempting to create branch: ", branch_create_res.status_code)
+        print("Branch " + new_branch_name + " probably already exists, did you run the script before? If so, please delete the old branch.")
         continue
 
     print("Branch created.")
-    print("======Updating Config======")
+    print("\n=== Updating Config ===")
 
     #Open the file created above and encode it.
     file_content = Path(r['name']+".yml").read_text()
@@ -192,7 +208,7 @@ for r in repos:
     print("Config updated.") 
     
     #Successful commit to the branch, now we move on to a PR.
-    print("======Creating Pull Request======")
+    print("\n=== Creating Pull Request ===")
 
     pr_data = {
         "title": "Update macos resource classes",
@@ -206,4 +222,7 @@ for r in repos:
     if pr_result.status_code != 201:
         print("Error creating pull request: ", pr_result.status_code)
         continue
+    print("\n\n========================================")
+    print("=========*      Success!      *=========")
+    print("========================================")
     print("Pull request opened, URL: " + pr_result.json()["html_url"])
